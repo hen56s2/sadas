@@ -1,0 +1,1553 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+local Window = Fluent:CreateWindow({
+    Title = "[RELEASE] Anime Simulator | NS HUB | Made By Nameless Scripts",
+    SubTitle = "",
+    TabWidth = 120,
+    Size = UDim2.fromOffset(500, 400),
+    Acrylic = false, -- The blur may be detectable, setting this to false disables blur entirely
+    Theme = "Dark",
+    Transparency = false,
+    MinimizeKey = Enum.KeyCode.LeftControl -- Used when theres no MinimizeKeybind
+})
+
+--Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
+local Tabs = {
+    Main = Window:AddTab({ Title = "Credits/Info", Icon = "scroll" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
+do
+    Fluent:Notify({
+        Title = "Notification",
+        Content = "This is a notification",
+        SubContent = "SubContent", -- Optional
+        Duration = 5 -- Set to nil to make the notification not disappear
+    })
+
+    Tabs.Main:AddParagraph({
+        Title = "Script is Working!",
+        Content = ""
+    })
+    
+    Tabs.Main:AddParagraph({
+        Title = "Supported Devices",
+        Content = "- Mobile\n- PC\n- Emulator"
+    })
+    
+    Tabs.Main:AddParagraph({
+        Title = "Credits to : Nameless Scripts\nYoutube: Nameless Scripts\nDiscord: https://discord.gg/ZkptAdmFDg",
+        Content = ""
+    })
+
+    local Tabs = {
+        Main = Window:AddTab({ Title = "Auto Farm", Icon = "swords" }),
+    }
+
+    local ToggleSection = Tabs.Main:AddSection("Player Function", {
+    })
+
+    local Toggle = Tabs.Main:AddToggle("ToogleAutoPower", {Title = "Auto Fast Click Train Combat and Sword", Default = false })
+local function checkToggle()
+    while Toggle.Value do
+        local args = {[1] = "M1",[2] = {}}game:GetService("ReplicatedStorage").CombatRemotes.PlayerInput:FireServer(unpack(args))        
+        wait()
+    end
+end
+
+Toggle:OnChanged(checkToggle)
+checkToggle()
+
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local Toggle = Tabs.Main:AddToggle("ToogleDefense", {Title = "Auto Click Fast Defense", Default = false })
+
+-- Auto-click functionality
+local function simulateClick()
+    -- Get the center of the screen
+    local viewportSize = workspace.CurrentCamera.ViewportSize
+    local centerX = viewportSize.X / 2
+    local centerY = viewportSize.Y / 2
+    
+    -- Simulate mouse click using VirtualInputManager
+    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+    task.wait()
+    VirtualInputManager:SendMouseButtonEvent(centerX, centerY, 0, false, game, 1)
+end
+
+local function autoClick()
+    while Toggle.Value do
+        simulateClick()
+        task.wait(0.1) -- Adjust this value to change click frequency
+    end
+end
+
+Toggle:OnChanged(function()
+    if Toggle.Value then
+        task.spawn(autoClick)
+    end
+end)
+
+
+
+local Toggle = Tabs.Main:AddToggle("tooglejump", {Title = "Auto Train Jump", Default = false })
+
+local VIM = game:GetService("VirtualInputManager")
+
+local function autoJump()
+    while Toggle.Value do
+        -- Press space key down
+        VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+        
+        -- Hold for a short duration
+        wait(0.05)
+        
+        -- Release space key
+        VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+        
+        -- Wait before next jump
+        wait(0.1)
+    end
+end
+
+Toggle:OnChanged(function()
+    if Toggle.Value then
+        task.spawn(autoJump)
+    end
+end)
+
+
+local Toggle = Tabs.Main:AddToggle("ToogleAutoSpeed", {Title = "Auto Train for Speed", Default = false })
+
+local VIM = game:GetService("VirtualInputManager")
+
+local function autoWalk()
+    while Toggle.Value do
+        -- Hold 'W' key for 1 second
+        VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+        wait(1)
+        VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+        
+        -- Hold 'S' key for 1 second
+        VIM:SendKeyEvent(true, Enum.KeyCode.S, false, game)
+        wait(1)
+        VIM:SendKeyEvent(false, Enum.KeyCode.S, false, game)
+    end
+end
+
+Toggle:OnChanged(function()
+    if Toggle.Value then
+        autoWalk()
+    end
+end)
+
+local ToggleSection = Tabs.Main:AddSection("Auto Farm Enemies", {
+})
+
+local workspace = game:GetService("Workspace")
+local players = game:GetService("Players")
+local runService = game:GetService("RunService")
+local localPlayer = players.LocalPlayer
+
+local isToggleOn = false
+local selectedValue = ""
+local teleporting = false
+
+-- Function to get unique enemy types
+local function getUniqueEnemyTypes()
+    local uniqueTypes = {}
+    local enemiesFolder = workspace.SharedObjects.Characters
+    for _, enemy in pairs(enemiesFolder:GetChildren()) do
+        if enemy:IsA("Model") and enemy:FindFirstChild("HumanoidRootPart") and 
+           enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 and 
+           not players:GetPlayerFromCharacter(enemy) then
+            local enemyType = enemy.Name:match("^(%a+)") -- Extract the text part before any numbers
+            if not table.find(uniqueTypes, enemyType) then
+                table.insert(uniqueTypes, enemyType)
+            end
+        end
+    end
+    return uniqueTypes
+end
+
+-- Create dropdown
+local Dropdown = Tabs.Main:AddDropdown("DropdownSelectAttack", {
+    Title = "Select An Enemy Type",
+    Values = getUniqueEnemyTypes(),
+    Multi = false,
+    Default = 1,
+})
+
+Dropdown:SetValue("")
+Dropdown:OnChanged(function(Value)
+    selectedValue = Value
+end)
+
+local function findNearestSelectedEnemy()
+    local minDistance = math.huge
+    local nearestEnemy = nil
+    local myPosition = localPlayer.Character.HumanoidRootPart.Position
+    
+    for _, enemy in pairs(workspace.SharedObjects.Characters:GetChildren()) do
+        if enemy:IsA("Model") and enemy:FindFirstChild("HumanoidRootPart") and 
+           enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 and 
+           enemy.Name:match("^" .. selectedValue) then
+            local distance = (enemy.HumanoidRootPart.Position - myPosition).magnitude
+            if distance < minDistance then
+                minDistance = distance
+                nearestEnemy = enemy
+            end
+        end
+    end
+    
+    return nearestEnemy
+end
+
+local function teleportToEnemy(enemy)
+    if enemy and not players:GetPlayerFromCharacter(enemy) then
+        local humanoidRootPart = localPlayer.Character.HumanoidRootPart
+        local offset = Vector3.new(0, 8, 0)
+        local downwardRotation = CFrame.Angles(math.rad(-81), 0, 0)
+        humanoidRootPart.CFrame = CFrame.new(enemy.HumanoidRootPart.Position + offset) * downwardRotation
+    end
+end
+
+local function onHeartbeat()
+    if isToggleOn and teleporting and selectedValue ~= "" then
+        local nearestEnemy = findNearestSelectedEnemy()
+        teleportToEnemy(nearestEnemy)
+    end
+end
+
+-- Create toggle
+local Toggle = Tabs.Main:AddToggle("MyToggle", {Title = "Auto Attack Selected", Default = false })
+
+local function checkToggle()
+    isToggleOn = Toggle.Value
+    if isToggleOn then
+        teleporting = true
+        runService.Heartbeat:Connect(onHeartbeat)
+    else
+        teleporting = false
+        runService:UnbindFromRenderStep("TeleportationStep")
+    end
+end
+
+Toggle:OnChanged(checkToggle)
+checkToggle()
+
+-- Update dropdown values periodically
+spawn(function()
+    while wait(5) do
+        Dropdown:SetValues(getUniqueEnemyTypes())
+    end
+end)
+
+local ToggleSection = Tabs.Main:AddSection("Auto Accept and Claim Quest", {
+})
+
+local Toggle = Tabs.Main:AddToggle("quest", {Title = "Village Leader", Default = false })
+
+local function checkToggle()
+    while Toggle.Value do
+        for i = 1, 7 do
+            local success, err = pcall(function()
+                local args = {
+                    [1] = "116a114b121c67d111e109f112g108h101i116j101k194l177m48n53o51p97q50r51s98t",
+                    [2] = "generalQuest" .. i
+                }
+                
+                game:GetService("ReplicatedStorage").Remotes:FindFirstChild("113a117b101c115d116e83f101g114h118i105j99k101l194m177n48o53p51q97r50s51t98u"):FireServer(unpack(args))
+            end)
+            
+            if not success then
+            end
+        end
+        wait()
+    end
+end
+
+Toggle:OnChanged(checkToggle)
+checkToggle()
+
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Blackbeard", Icon = "skull" }),
+}
+
+local toggleValue = false
+local teleporting = false
+local heartbeatConnection = nil
+local platform = nil
+local fallbackCFrame = CFrame.new(4926.21777, 307.34848, 27086.5449, -0.707648396, 1.07886962e-07, 0.706564724, 8.78638389e-08, 1, -6.46936584e-08, -0.706564724, 1.63011276e-08, -0.707648396)
+
+local function findTarget()
+    local enemyFolder = workspace.SharedObjects.Characters
+    local blackbeard = enemyFolder:FindFirstChild("BlackBeard")
+    
+    if blackbeard and blackbeard:IsA("Model") and blackbeard:FindFirstChild("belt_low") then
+        return blackbeard
+    end
+    
+    return nil
+end
+
+local function createPlatform()
+    if not platform then
+        platform = Instance.new("Part")
+        platform.Size = Vector3.new(10, 1, 10)
+        platform.Anchored = true
+        platform.CanCollide = false
+        platform.Parent = workspace
+    end
+end
+
+local function updatePlatformPosition(enemyBeltLow)
+    if platform then
+        local success, err = pcall(function()
+            local characterHRP = game.Players.LocalPlayer.Character.HumanoidRootPart
+            local characterPosition = characterHRP.Position
+            local platformPosition = Vector3.new(characterPosition.X, characterPosition.Y - 2, characterPosition.Z)
+            platform.Position = platformPosition
+        end)
+        
+        if not success then
+            warn("Made By Nameless Scripts, Discord : NS HUB")
+        end
+    end
+end
+
+local function isTsunamiWaveInRadius()
+    local tsunamiWave = workspace.CombatEffects:FindFirstChild("TsunamiWave")
+    if tsunamiWave then
+        local characterHRP = game.Players.LocalPlayer.Character.HumanoidRootPart
+        local distance = (tsunamiWave.Position - characterHRP.Position).Magnitude
+        return distance <= 500
+    end
+    return false
+end
+
+local function teleportToEnemy(enemy)
+    if enemy and not enemy:IsA("Player") then
+        local success, err = pcall(function()
+            local humanoidRootPart = game.Players.LocalPlayer.Character.HumanoidRootPart
+            local enemyBeltLow = enemy.belt_low
+            local offset = isTsunamiWaveInRadius() and Vector3.new(0, 190, 10) or Vector3.new(0, 10, 10)
+            local behindPosition = enemyBeltLow.CFrame * CFrame.new(offset)
+            local lookAtEnemy = CFrame.new(behindPosition.Position, enemyBeltLow.Position)
+            humanoidRootPart.CFrame = lookAtEnemy
+            updatePlatformPosition(enemyBeltLow)
+        end)
+        
+        if not success then
+            warn("Made By Nameless Scripts, Discord : NS HUB")
+        end
+    end
+end
+
+local function teleportToFallback()
+    local success, err = pcall(function()
+        local humanoidRootPart = game.Players.LocalPlayer.Character.HumanoidRootPart
+        humanoidRootPart.CFrame = fallbackCFrame
+    end)
+    
+    if not success then
+        warn("Made By Nameless Scripts, Discord : NS HUB")
+    end
+end
+
+local function onHeartbeat()
+    local success, err = pcall(function()
+        if toggleValue then
+            local target = findTarget()
+            if target then
+                createPlatform()
+                teleportToEnemy(target)
+            else
+                teleportToFallback()
+            end
+        end
+    end)
+    
+    if not success then
+        warn("Made By Nameless Scripts, Discord : NS HUB")
+    end
+end
+
+local Toggle = Tabs.Main:AddToggle("ToogleAutoFarmRaid", {
+    Title = "Auto Farm + Auto Dodge Black Beard V1",
+    Description = "Turn this On To Start Auto Farming BlackBeard",
+    Default = false,
+})
+
+local function startTeleporting()
+    local success, err = pcall(function()
+        teleporting = true
+        if not heartbeatConnection then
+            heartbeatConnection = game:GetService("RunService").Heartbeat:Connect(onHeartbeat)
+        end
+    end)
+    
+    if not success then
+        warn("Made By Nameless Scripts, Discord : NS HUB")
+    end
+end
+
+local function stopTeleporting()
+    local success, err = pcall(function()
+        teleporting = false
+        if heartbeatConnection then
+            heartbeatConnection:Disconnect()
+            heartbeatConnection = nil
+        end
+    end)
+    
+    if not success then
+        warn("Made By Nameless Scripts, Discord : NS HUB")
+    end
+end
+
+local function checkToggle()
+    local success, err = pcall(function()
+        toggleValue = Toggle.Value
+        if toggleValue then
+            startTeleporting()
+        else
+            stopTeleporting()
+        end
+    end)
+    
+    if not success then
+        warn("Made By Nameless Scripts, Discord : NS HUB")
+    end
+end
+
+Toggle:OnChanged(checkToggle)
+checkToggle()
+
+local toggleValue = false
+local teleporting = false
+local teleportThread = nil
+
+local blackbeardCFrame = CFrame.new(4918.12744, 293.128052, 27510.8945, -0.953935981, 7.47582831e-08, 0.300010294, 4.62585632e-08, 1, -1.02098419e-07, -0.300010294, -8.3517314e-08, -0.953935981)
+local fallbackCFrame = CFrame.new(4898.2251, 307.348663, 27106.8652, -0.995599568, 2.44441996e-08, -0.0937095433, 1.8985693e-08, 1, 5.91407314e-08, 0.0937095433, 5.71013494e-08, -0.995599568)
+
+local function isTsunamiWaveInRadius()
+    local tsunamiWave = workspace.CombatEffects:FindFirstChild("TsunamiWave")
+    if tsunamiWave then
+        local characterHRP = game.Players.LocalPlayer.Character.HumanoidRootPart
+        local distance = (tsunamiWave.Position - characterHRP.Position).Magnitude
+        return distance <= 500
+    end
+    return false
+end
+
+local function isBlackbeardPresent()
+    local enemyFolder = workspace.SharedObjects.Characters
+    local blackbeard = enemyFolder:FindFirstChild("BlackBeard")
+    
+    return blackbeard and blackbeard:IsA("Model") and blackbeard:FindFirstChild("belt_low")
+end
+
+local function teleportToTarget()
+    if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local humanoidRootPart = game.Players.LocalPlayer.Character.HumanoidRootPart
+        
+        if isBlackbeardPresent() then
+            local verticalOffset = isTsunamiWaveInRadius() and 190 or 60
+            local offset = Vector3.new(0, verticalOffset, 0)
+            local downwardRotation = CFrame.Angles(math.rad(-81), 0, 0)
+            humanoidRootPart.CFrame = blackbeardCFrame * CFrame.new(offset) * downwardRotation
+        else
+            humanoidRootPart.CFrame = fallbackCFrame
+        end
+    end
+end
+
+local function onHeartbeat()
+    if toggleValue and teleporting then
+        teleportToTarget()
+    end
+end
+
+local Toggle = Tabs.Main:AddToggle("ToogleBlack", { Title = "Auto Farm + Dodge Black Beard V2", Description = "Use This if you Have Long Range Skills", Default = false })
+
+local function checkToggle()
+    toggleValue = Toggle.Value
+    if toggleValue then
+        teleporting = true
+        game:GetService("RunService").Heartbeat:Connect(onHeartbeat)
+    else
+        teleporting = false
+        game:GetService("RunService"):UnbindFromRenderStep("TeleportationStep")
+    end
+end
+
+Toggle:OnChanged(checkToggle)
+checkToggle()
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Utitlities", Icon = "star" }),
+}
+
+local ToggleSection = Tabs.Main:AddSection("Anti Kill", {
+})
+
+local Toggle = Tabs.Main:AddToggle("ToogleAutoSafe", {Title = "Auto Safe Zone", Default = false })
+
+local savedPosition = nil
+local safeZone = CFrame.new(-57.959938, 299.199158, 23993.5312, -0.131516427, 2.09004263e-08, 0.991313994, 1.25391084e-08, 1, -1.94200105e-08, -0.991313994, 9.87614346e-09, -0.131516427)
+
+Tabs.Main:AddButton({
+    Title = "Save Position",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            savedPosition = character.HumanoidRootPart.CFrame
+        end
+    end
+})
+
+local function checkToggle()
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    while Toggle.Value do
+        if savedPosition then
+            local playerNearby = false
+            
+            for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+                if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local distance = (otherPlayer.Character.HumanoidRootPart.Position - savedPosition.Position).Magnitude
+                    if distance <= 100 then
+                        playerNearby = true
+                        break
+                    end
+                end
+            end
+            
+            if playerNearby then
+                humanoidRootPart.CFrame = safeZone
+            else
+                local distanceToSavedPosition = (humanoidRootPart.Position - savedPosition.Position).Magnitude
+                if distanceToSavedPosition > 5 then  -- Only teleport if not already near the saved position
+                    humanoidRootPart.CFrame = savedPosition
+                end
+            end
+        end
+        
+        wait() -- Adjust this value to change how often the check is performed
+    end
+end
+
+Toggle:OnChanged(checkToggle)
+
+local ToggleSection = Tabs.Main:AddSection("Gatcha | Hatch", {
+})
+
+local isToggleOn = false
+local selectedValue = ""
+
+local Dropdown = Tabs.Main:AddDropdown("DropdownSelectHatch", {
+    Title = "Select A Hatch Mode",
+    Values = {"Single", "Multi"},
+    Multi = false,
+    Default = 1,
+})
+
+Dropdown:SetValue("")
+
+Dropdown:OnChanged(function(Value)
+    selectedValue = Value
+end)
+
+local Toggle = Tabs.Main:AddToggle("ToogleEgg", {Title = "Auto Hatch Selected", Default = false })
+
+local function HandleToggleAction()
+    while isToggleOn do
+        
+        if isToggleOn then
+            if selectedValue == "Single" then
+                local args = {[1] = "114a111b108c108d194e177f98g48h56i55j50k97l100m",[2] = "pets"}game:GetService("ReplicatedStorage").Remotes:FindFirstChild("103a97b99c104d97e83f101g114h118i105j99k101l194m177n98o48p56q55r50s97t100u"):FireServer(unpack(args))
+                local args = {[1] = "114a101b115c101d116e194f177g98h48i56j55k50l97m100n"}game:GetService("ReplicatedStorage").Remotes:FindFirstChild("97a110b116c105d65e70f75g83h101i114j118k105l99m101n194o177p98q48r56s55t50u97v100w"):FireServer(unpack(args))
+            elseif selectedValue == "Multi" then
+                local args = {[1] = "114a111b108c108d194e177f98g48h56i55j50k97l100m",[2] = "pets",[3] = true}game:GetService("ReplicatedStorage").Remotes:FindFirstChild("103a97b99c104d97e83f101g114h118i105j99k101l194m177n98o48p56q55r50s97t100u"):FireServer(unpack(args))
+                local args = {[1] = "114a101b115c101d116e194f177g98h48i56j55k50l97m100n"}game:GetService("ReplicatedStorage").Remotes:FindFirstChild("97a110b116c105d65e70f75g83h101i114j118k105l99m101n194o177p98q48r56s55t50u97v100w"):FireServer(unpack(args))
+            end
+        end
+        
+        wait()
+    end
+end
+
+Toggle:OnChanged(function(value)
+    isToggleOn = value
+    
+    if isToggleOn then
+
+        spawn(HandleToggleAction)
+    end
+end)
+
+if Toggle.Value then
+
+    spawn(HandleToggleAction)
+end
+
+
+local ToggleSection = Tabs.Main:AddSection("Function", {
+})
+
+local Toggle = Tabs.Main:AddToggle("Codes", {Title = "Auto Redeem Codes", Description = "Turn This On to Automatically Redeem Codes", Default = false })
+
+local function checkToggle()
+    local remote, errorMsg
+
+    -- Safely find the remote
+    local success, err = pcall(function()
+        remote = game:GetService("ReplicatedStorage").Remotes:FindFirstChild("99a111b100c101d115e83f101g114h118i105j99k101l194m177n56o57p57q50r57s50t48u")
+    end)
+
+    if not success then
+        return
+    end
+
+    if not remote then
+        return
+    end
+
+    local codes = {"boost", "release", "starcodekelvin", "bickboi", "blackbeard", "animesimulator", "pebblelee"}
+
+    while Toggle.Value do
+        for _, code in ipairs(codes) do
+            local success, err = pcall(function()
+                remote:FireServer("114a101b100c101d101e109f194g177h56i57j57k50l57m50n48o", code)
+            end)
+            
+            if not success then
+            end
+
+            wait(1)
+        end
+    end
+end
+
+Toggle:OnChanged(function()
+    local success, err = pcall(checkToggle)
+    if not success then
+    end
+end)
+
+-- Initial call to checkToggle to start if the toggle is already on
+local success, err = pcall(checkToggle)
+if not success then
+    print("Bro")
+end
+
+
+local Toggle = Tabs.Main:AddToggle("ClaimTime", {Title = "Auto Claim Time Rewards", Description = "Turn This On to Automatically Claim Rewards", Default = false })
+
+local function checkToggle()
+    local remote = game:GetService("ReplicatedStorage").Remotes:FindFirstChild("112a108b97c121d116e105f109g101h82i101j119k97l114m100n115o194p177q99r102s53t100u99v55w52x")
+    
+    while Toggle.Value do
+        for i = 1, 10 do
+            local success, err = pcall(function()
+                remote:FireServer("99a108b97c105d109e194f177g99h102i53j100k99l55m52n", i)
+            end)
+            
+            if not success then
+            end
+        end
+        wait(1)  -- Wait for 1 second before the next cycle
+    end
+end
+
+Toggle:OnChanged(checkToggle)
+checkToggle()
+
+
+
+
+local ToggleSection = Tabs.Main:AddSection("Auto Stats", {
+})
+
+
+local isToggleOn = false
+local selectedValue = ""
+
+local Dropdown = Tabs.Main:AddDropdown("DropdownSelectStat", {
+    Title = "Select A Stat",
+    Values = {"Strenght", "Defense", "Energy", "Weapon", "Speed", "Jump"},
+    Multi = false,
+    Default = 1,
+})
+
+Dropdown:SetValue("")
+
+Dropdown:OnChanged(function(Value)
+    selectedValue = Value
+end)
+
+local Toggle = Tabs.Main:AddToggle("ToogleStats", {Title = "Auto Upgrade Stat Selected", Default = false })
+
+local function HandleToggleAction()
+    while isToggleOn do
+        
+        if isToggleOn then
+            if selectedValue == "Strenght" then
+                local args = {
+                    [1] = "117a112b103c114d97e100f101g77h117i108j116k105l112m108n105o101p114q194r177s102t102u53v97w100x49y55z",
+                    [2] = "strenght"
+                }
+                
+                game:GetService("ReplicatedStorage").Remotes:FindFirstChild("116a114b97c105d110e105f110g103h83i116j97k116l115m194n177o102p102q53r97s100t49u55v"):FireServer(unpack(args))
+                
+            elseif selectedValue == "Defense" then
+                local args = {
+                    [1] = "117a112b103c114d97e100f101g77h117i108j116k105l112m108n105o101p114q194r177s102t102u53v97w100x49y55z",
+                    [2] = "defense"
+                }
+                
+                game:GetService("ReplicatedStorage").Remotes:FindFirstChild("116a114b97c105d110e105f110g103h83i116j97k116l115m194n177o102p102q53r97s100t49u55v"):FireServer(unpack(args))
+                
+            elseif selectedValue == "Energy" then
+                local args = {
+                    [1] = "117a112b103c114d97e100f101g77h117i108j116k105l112m108n105o101p114q194r177s102t102u53v97w100x49y55z",
+                    [2] = "energy"
+                }
+                
+                game:GetService("ReplicatedStorage").Remotes:FindFirstChild("116a114b97c105d110e105f110g103h83i116j97k116l115m194n177o102p102q53r97s100t49u55v"):FireServer(unpack(args))                
+            elseif selectedValue == "Weapon" then
+                local args = {
+                    [1] = "117a112b103c114d97e100f101g77h117i108j116k105l112m108n105o101p114q194r177s102t102u53v97w100x49y55z",
+                    [2] = "weapon"
+                }
+                
+                game:GetService("ReplicatedStorage").Remotes:FindFirstChild("116a114b97c105d110e105f110g103h83i116j97k116l115m194n177o102p102q53r97s100t49u55v"):FireServer(unpack(args))
+            elseif selectedValue == "Speed" then
+                local args = {
+                    [1] = "117a112b103c114d97e100f101g77h117i108j116k105l112m108n105o101p114q194r177s102t102u53v97w100x49y55z",
+                    [2] = "speed"
+                }
+                
+                game:GetService("ReplicatedStorage").Remotes:FindFirstChild("116a114b97c105d110e105f110g103h83i116j97k116l115m194n177o102p102q53r97s100t49u55v"):FireServer(unpack(args))
+            elseif selectedValue == "Jump" then
+                local args = {
+                    [1] = "117a112b103c114d97e100f101g77h117i108j116k105l112m108n105o101p114q194r177s102t102u53v97w100x49y55z",
+                    [2] = "jump"
+                }
+                
+                game:GetService("ReplicatedStorage").Remotes:FindFirstChild("116a114b97c105d110e105f110g103h83i116j97k116l115m194n177o102p102q53r97s100t49u55v"):FireServer(unpack(args))
+
+            end
+        end
+        
+        wait()
+    end
+end
+
+Toggle:OnChanged(function(value)
+    isToggleOn = value
+    
+    if isToggleOn then
+
+        spawn(HandleToggleAction)
+    end
+end)
+
+if Toggle.Value then
+
+    spawn(HandleToggleAction)
+end
+
+
+
+local ToggleSection = Tabs.Main:AddSection("Auto Skills [PC]", {
+})
+
+-- Add Input
+local Input = Tabs.Main:AddInput("InputSkills", {
+    Title = "Write The Skill Key",
+    Default = "Example. Q,E,R",
+    Placeholder = "Enter Keys (e.g., Q,E,R)",
+    Numeric = false, -- Allows non-numeric input (keys)
+    Finished = false, -- Only calls callback when you press enter
+    Callback = function(Value)
+    end
+})
+
+-- Add Toggle
+local Toggle = Tabs.Main:AddToggle("ToogleSKills", {Title = "Auto Use Skills", Default = false })
+
+-- Function to check the Toggle state and simulate key presses
+local function checkToggle()
+    while Toggle.Value do
+        wait()
+        -- Simulate key presses using VirtualInputManager
+        local keysToPress = Input.Value
+        if keysToPress and keysToPress ~= "" then
+            -- Split the input into individual keys
+            local keyList = keysToPress:split(",")
+            for _, key in ipairs(keyList) do
+                -- Trim any whitespace
+                key = key:match("^%s*(.-)%s*$")
+                if key and key ~= "" then
+                    game:GetService("VirtualInputManager"):SendKeyEvent(true, key, false, game)
+                    wait(0.1) -- Small delay to simulate key press duration
+                    game:GetService("VirtualInputManager"):SendKeyEvent(false, key, false, game)
+                end
+            end
+        end
+    end
+end
+
+-- When the Toggle changes state, start/stop the checkToggle function
+Toggle:OnChanged(function()
+    if Toggle.Value then
+        checkToggle()
+    end
+end)
+
+-- When the Input value changes, this event will be triggered
+Input:OnChanged(function()
+end)
+
+local ToggleSection = Tabs.Main:AddSection("Auto Skills [MOBILE]", {
+})
+
+local VirtualInputManager = game:GetService("VirtualInputManager")
+    local Toggle = Tabs.Main:AddToggle("ToggleAutoKeyPress", { Title = "Auto Use Skills", Description = "Automatically Use All Skills", Default = false })
+    
+    local keySequence = {Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine}
+    local keyPressDelay = 0.5
+    
+    local function simulateKeyPress(keyCode)
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        wait()
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end
+    
+    local function autoKeyPress()
+        while Toggle.Value do
+            for _, keyCode in ipairs(keySequence) do
+                if not Toggle.Value then return end
+                simulateKeyPress(keyCode)
+                wait(keyPressDelay)
+            end
+        end
+    end
+    
+    Toggle:OnChanged(function()
+        if Toggle.Value then
+            spawn(autoKeyPress)
+        end
+    end)
+
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Farm Players", Icon = "skull" }),
+    }
+
+    local isToggleOn = false
+    local selectedPlayer = nil
+    local teleporting = false
+    
+    -- Create the dropdown
+    local Dropdown = Tabs.Main:AddDropdown("Dropdown", {
+        Title = "Select A Player",
+        Values = {}, -- Initialize with an empty list
+        Multi = false,
+        Default = "SELECT A PLAYER!",
+    })
+    
+    -- Function to populate the dropdown with player names
+    local function populateDropdown()
+        local playerNames = {}
+        for _, player in pairs(game.Players:GetPlayers()) do
+            table.insert(playerNames, player.Name)
+        end
+        Dropdown:SetValues(playerNames)
+    end
+    
+    populateDropdown() -- Populate the dropdown initially
+    
+    -- Handle dropdown selection
+    Dropdown:OnChanged(function(value)
+        selectedPlayer = value
+    end)
+    
+    -- Create the toggle
+    local Toggle = Tabs.Main:AddToggle("ToogleFarmPlayer", {Title = "Farm Selected Player", Default = false })
+    
+    -- Function to teleport to the selected player
+    local function teleportToSelectedPlayer()
+        local player = game.Players:FindFirstChild(selectedPlayer)
+        if player then
+            local humanoidRootPart = player.Character and player.Character.HumanoidRootPart
+            if humanoidRootPart then
+                -- Define offset and rotation
+                local offset = Vector3.new(0, -8, 0)
+                local downwardRotation = CFrame.Angles(math.rad(78), 0, 0)
+                
+                -- Teleport to the selected player's position with specified offset and rotation
+                game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position + offset) * downwardRotation
+            end
+        end
+    end
+    
+    -- Handle toggle change
+    local function onHeartbeat()
+        if isToggleOn and teleporting then
+            teleportToSelectedPlayer()
+        end
+    end
+    
+    Toggle:OnChanged(function(value)
+        isToggleOn = value
+        teleporting = value -- Set teleporting state to true when toggle is on
+        
+        if isToggleOn then
+            game:GetService("RunService").Heartbeat:Connect(onHeartbeat)
+        else
+            game:GetService("RunService"):UnbindFromRenderStep("TeleportationStep")
+        end
+    end)
+    
+    -- Create the refresh button below the toggle
+    Tabs.Main:AddButton({
+        Title = "Refresh Players",
+        Callback = function()
+            populateDropdown() -- Refresh the player list in the dropdown
+        end
+    })
+    
+
+
+    local ToggleSection = Tabs.Main:AddSection("Player Function", {
+    })
+    
+    local Toggle = Tabs.Main:AddToggle("MyToggle", {Title = "ESP PLAYERS", Default = false})
+
+    -- Team colors
+    local EvilColor = Color3.fromRGB(175, 25, 255) -- Red
+    local GoodColor = Color3.fromRGB(0, 0, 255) -- Blue
+    local NeutralColor = Color3.fromRGB(255, 255, 255) -- White
+    
+    local DepthMode = "AlwaysOnTop"
+    local FillTransparency = 0.5
+    local OutlineColor = Color3.fromRGB(255, 255, 255)
+    local OutlineTransparency = 0
+    
+    local CoreGui = game:GetService("CoreGui")
+    local Players = game:GetService("Players")
+    local lp = Players.LocalPlayer
+    local connections = {}
+    
+    local Storage = Instance.new("Folder")
+    Storage.Parent = CoreGui
+    Storage.Name = "Highlight_Storage"
+    
+    local function Highlight(plr)
+      local char = plr.Character
+      if not char then
+        return
+      end
+    
+      local Highlight = Instance.new("Highlight")
+      Highlight.Name = plr.UserId -- Use UserId as the name to avoid conflicts
+    
+      -- Set color based on team
+      local teamColor = NeutralColor
+      if plr.Team then
+        if plr.Team.Name == "Evil" then
+          teamColor = EvilColor
+        elseif plr.Team.Name == "Good" then
+          teamColor = GoodColor
+        end
+      end
+      Highlight.FillColor = teamColor
+    
+      Highlight.DepthMode = DepthMode
+      Highlight.FillTransparency = FillTransparency
+      Highlight.OutlineColor = OutlineColor
+      Highlight.OutlineTransparency = OutlineTransparency
+      Highlight.Parent = Storage
+    
+      Highlight.Adornee = char
+    
+      connections[plr.UserId] = plr.CharacterAdded:Connect(function(char)
+        Highlight.Adornee = char
+      end)
+    end
+    
+    local function ClearHighlight(userId)
+      local highlight = Storage:FindFirstChild(userId)
+      if highlight then
+        highlight:Destroy()
+        connections[userId]:Disconnect()
+        connections[userId] = nil
+      end
+    end
+    
+    local function ClearAllHighlights()
+      Storage:ClearAllChildren()
+      for userId, connection in pairs(connections) do
+        connection:Disconnect()
+        connections[userId] = nil
+      end
+    end
+    
+    local function CheckToggle()
+      if Toggle.Value then
+        ClearAllHighlights()
+        for _, plr in ipairs(Players:GetPlayers()) do
+          Highlight(plr)
+        end
+      else
+        ClearAllHighlights()
+      end
+    end
+    
+    Players.PlayerAdded:Connect(function(plr)
+      if Toggle.Value then
+        Highlight(plr)
+      end
+    end)
+    
+    Players.PlayerRemoving:Connect(function(plr)
+      ClearHighlight(plr.UserId)
+    end)
+    
+    Toggle:OnChanged(CheckToggle)
+    CheckToggle() -- Initial check
+    
+    
+
+
+
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    
+    -- Function to calculate distance between two points
+    local function CalculateDistance(point1, point2)
+        return (point1 - point2).magnitude
+    end
+    
+    local function CreateNameTag(parent, name, distance)
+        local tag = Instance.new("BillboardGui")
+        tag.Parent = parent
+        tag.Name = "NameTag"
+        tag.Size = UDim2.new(0, 150, 0, 40)
+        tag.StudsOffset = Vector3.new(0, 3, 0)
+        tag.AlwaysOnTop = true
+    
+        local text = Instance.new("TextLabel")
+        text.Parent = tag
+        text.Text = name .. " (" .. tostring(distance) .. " studs)"
+        text.Size = UDim2.new(1, 0, 1, 0)
+        text.TextColor3 = Color3.fromRGB(255, 255, 255)
+        text.BackgroundTransparency = 1
+        text.Font = Enum.Font.SourceSansBold
+        text.TextSize = 20
+        
+        text.TextStrokeTransparency = 0
+        text.TextStrokeColor3 = Color3.new(0, 0, 0)
+        text.TextStrokeTransparency = 0.5
+    
+        return tag
+    end
+    
+    local function UpdateNameTag(player)
+        if player ~= Players.LocalPlayer and player.Character then
+            local head = player.Character:FindFirstChild("Head")
+            if head then
+                local nameTag = head:FindFirstChild("NameTag")
+                if Toggle.Value then
+                    local distance = CalculateDistance(player.Character.HumanoidRootPart.Position, Players.LocalPlayer.Character.HumanoidRootPart.Position)
+                    if not nameTag then
+                        CreateNameTag(head, player.Name, math.floor(distance))
+                    else
+                        nameTag.TextLabel.Text = player.Name .. " (" .. tostring(math.floor(distance)) .. " studs)"
+                    end
+                elseif nameTag then
+                    nameTag:Destroy()
+                end
+            end
+        end
+    end
+    
+    local Toggle = Tabs.Main:AddToggle("MyToggle", {Title = "Show Names & Distance", Default = false })
+    
+    local function UpdateAllNameTags()
+        for _, player in ipairs(Players:GetPlayers()) do
+            UpdateNameTag(player)
+        end
+    end
+    
+    Toggle:OnChanged(function()
+        UpdateAllNameTags()
+    end)
+    
+    RunService.Heartbeat:Connect(function()
+        if Toggle.Value then
+            UpdateAllNameTags()
+        end
+    end)
+    
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function()
+            if Toggle.Value then
+                UpdateNameTag(player)
+            end
+        end)
+    end)
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        player.CharacterAdded:Connect(function()
+            if Toggle.Value then
+                UpdateNameTag(player)
+            end
+        end)
+    end
+    
+    UpdateAllNameTags() -- Initial update
+    
+    
+    local Players = game:GetService("Players")
+    local Toggle = Tabs.Main:AddToggle("MyToggle", { Title = "Bring Players", Default = false })
+    
+    local function bringPlayers()
+    while Toggle.Value do
+        local myCharacter = Players.LocalPlayer.Character
+        local myHumanoidRootPart = myCharacter and myCharacter:FindFirstChild("HumanoidRootPart")
+        if myHumanoidRootPart then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= Players.LocalPlayer then
+                    local character = player.Character
+                    local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        humanoidRootPart.CFrame = myHumanoidRootPart.CFrame * CFrame.new(0, 0, -5) -- Adjust the offset if needed
+                    end
+                end
+            end
+        end
+        wait()
+    end
+    end
+    
+    Toggle:OnChanged(function(value)
+    if value then
+        bringPlayers()
+    end
+    end)
+    
+    bringPlayers()
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Areas TP", Icon = "map-pin" }),
+}
+
+local ToggleSection = Tabs.Main:AddSection("TRAIN AREAS TELEPORT", {
+})
+
+local selectedValue = ""
+
+-- Define the custom order
+local customOrder = {
+    "Strength",
+    "Defense",
+    "Energy",
+    "Speed",
+    "Jump"
+}
+
+-- Get all the training areas
+local trainingAreas = workspace.SharedObjects.TrainingAreas:GetChildren()
+local areaNames = {}
+
+-- Extract the numerical value from each area's name for sorting
+for _, area in ipairs(trainingAreas) do
+    local name = area.Name
+    -- Find the number in the name (e.g., x5, x1000, etc.)
+    local number = tonumber(name:match("%d+"))
+    if number then
+        table.insert(areaNames, {name = name, value = number})
+    end
+end
+
+-- Function to get the index in the custom order list
+local function getCustomOrderIndex(name)
+    for i, customName in ipairs(customOrder) do
+        if name:find(customName) then
+            return i
+        end
+    end
+    return #customOrder + 1 -- Default to the end if not found in custom order
+end
+
+-- Sort the areas by custom order and numerical value
+table.sort(areaNames, function(a, b)
+    local orderA = getCustomOrderIndex(a.name)
+    local orderB = getCustomOrderIndex(b.name)
+    if orderA == orderB then
+        return a.value < b.value
+    else
+        return orderA < orderB
+    end
+end)
+
+-- Extract sorted names
+local sortedAreaNames = {}
+for _, area in ipairs(areaNames) do
+    table.insert(sortedAreaNames, area.name)
+end
+
+local Dropdown = Tabs.Main:AddDropdown("DropdownSelectArea", {
+    Title = "Select a Training Area",
+    Description = "Select a Training Area You Want to Go To",
+    Values = sortedAreaNames,  -- Use the sorted list of area names
+    Multi = false,
+    Default = 1,
+})
+
+Dropdown:SetValue("")
+
+Dropdown:OnChanged(function(Value)
+    selectedValue = Value
+end)
+
+local function HandleButtonAction()
+    if selectedValue ~= "" then
+        local targetArea = workspace.SharedObjects.TrainingAreas:FindFirstChild(selectedValue)
+        if targetArea then
+            local player = game.Players.LocalPlayer
+            player.Character.HumanoidRootPart.CFrame = targetArea.PrimaryPart.CFrame
+        end
+    end
+end
+
+Tabs.Main:AddButton({
+    Title = "Teleport to Selected Area",
+    Description = "Tap This to Teleport to the Selected Area",
+    Callback = function()
+        HandleButtonAction()
+    end
+})
+
+
+local ToggleSection = Tabs.Main:AddSection("NPC TELEPORT", {
+})
+
+local selectedValue = ""
+
+local trainingAreas = workspace.SharedObjects.NPCs:GetChildren()
+local areaNames = {}
+
+for _, area in ipairs(trainingAreas) do
+    table.insert(areaNames, area.Name)
+end
+
+local Dropdown = Tabs.Main:AddDropdown("DropdownSelectArea", {
+    Title = "Select a NPC",
+    Description = "Select An NPC You Wanna Go",
+    Values = areaNames,
+    Multi = false,
+    Default = 1,
+})
+
+Dropdown:SetValue("")
+
+Dropdown:OnChanged(function(Value)
+    selectedValue = Value
+end)
+
+local function HandleButtonAction()
+    if selectedValue ~= "" then
+        local targetArea = workspace.SharedObjects.NPCs:FindFirstChild(selectedValue)
+        if targetArea then
+            local player = game.Players.LocalPlayer
+            player.Character.HumanoidRootPart.CFrame = targetArea.PrimaryPart.CFrame
+        end
+    end
+end
+
+Tabs.Main:AddButton({
+    Title = "Teleport to Selected NPC",
+    Description = "Tap This to Teleport to the Selected NPC",
+    Callback = function()
+        HandleButtonAction()
+    end
+})
+
+local ToggleSection = Tabs.Main:AddSection("GATCHA TELEPORT", {})
+
+local selectedValueGatcha = ""
+
+local gatchaAreas = workspace.SharedObjects.CommandAreas:GetChildren()
+local gatchaNames = {}
+
+for _, area in ipairs(gatchaAreas) do
+    table.insert(gatchaNames, area.Name)
+end
+
+local DropdownGatcha = Tabs.Main:AddDropdown("DropdownSelectGatcha", {
+    Title = "Select a Gatcha",
+    Description = "Select A Gatcha You Want To Go To",
+    Values = gatchaNames,
+    Multi = false,
+    Default = 1,
+})
+
+DropdownGatcha:SetValue("")
+
+DropdownGatcha:OnChanged(function(Value)
+    selectedValueGatcha = Value
+end)
+
+local function HandleButtonActionGatcha()
+    if selectedValueGatcha ~= "" then
+        local targetArea = workspace.SharedObjects.CommandAreas:FindFirstChild(selectedValueGatcha)
+        if targetArea then
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local targetPart = targetArea:FindFirstChild("HumanoidRootPart") or targetArea:FindFirstChildWhichIsA("BasePart")
+                if targetPart then
+                    character.HumanoidRootPart.CFrame = targetPart.CFrame
+                end
+            end
+        end
+    end
+end
+
+Tabs.Main:AddButton({
+    Title = "Teleport to Selected Gatcha",
+    Description = "Tap This to Teleport to the Selected Gatcha",
+    Callback = HandleButtonActionGatcha
+})
+
+local ToggleSection = Tabs.Main:AddSection("UGC TELEPORT", {})
+
+local selectedValueUGC = ""
+
+local ugcParts = workspace.SharedObjects.UGCBanners:GetChildren()
+local ugcNames = {}
+
+for _, part in ipairs(ugcParts) do
+    if part:IsA("BasePart") then
+        table.insert(ugcNames, part.Name)
+    end
+end
+
+local DropdownUGC = Tabs.Main:AddDropdown("DropdownSelectUGC", {
+    Title = "Select a UGC",
+    Description = "Select A UGC You Want To Go To",
+    Values = ugcNames,
+    Multi = false,
+    Default = 1,
+})
+
+DropdownUGC:SetValue("")
+
+DropdownUGC:OnChanged(function(Value)
+    selectedValueUGC = Value
+end)
+
+local function HandleButtonActionUGC()
+    if selectedValueUGC ~= "" then
+        local targetPart = workspace.SharedObjects.UGCBanners:FindFirstChild(selectedValueUGC)
+        if targetPart and targetPart:IsA("BasePart") then
+            local player = game.Players.LocalPlayer
+            local character = player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                character.HumanoidRootPart.CFrame = targetPart.CFrame
+            end
+        end
+    end
+end
+
+Tabs.Main:AddButton({
+    Title = "Teleport to Selected UGC",
+    Description = "Tap This to Teleport to the Selected UGC",
+    Callback = HandleButtonActionUGC
+})
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Misc", Icon = "flame" }),
+}
+
+    Tabs.Main:AddButton({
+        Title = "Server Hop",
+        Description = "This Will Move You to Another Server Fast",
+        Callback = function()
+            local targetPlaceId = 18401171146  -- Replace this with your actual target game place ID
+            local TeleportService = game:GetService("TeleportService")
+            local Players = game:GetService("Players")
+            local LocalPlayer = Players.LocalPlayer
+            
+            local function ServerHop()
+                TeleportService:Teleport(targetPlaceId, LocalPlayer)
+            end
+            
+            -- Call ServerHop() whenever you want to server hop
+            ServerHop()                
+        end
+        })
+
+            local Toggle = Tabs.Main:AddToggle("ToogleAntiAFK", {Title = "Anti AFK", Default = false })
+
+            local function AntiAFK()
+                local Players = game:GetService("Players")
+                local VirtualUser = game:GetService("VirtualUser")
+            
+                local function ResetStatus()
+                    print("Status: 123")
+                end
+            
+                Players.LocalPlayer.Idled:Connect(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                    print("Best Scripter Nameless Scripts")
+                    wait(2)
+                    ResetStatus()
+                end)
+            end
+            
+            local function checkToggle()
+                if Toggle.Value then
+                    AntiAFK()
+                end
+            end
+            
+            Toggle:OnChanged(checkToggle)
+            checkToggle()        
+
+
+local Tabs = {
+    Main = Window:AddTab({ Title = "Other", Icon = "book" }),
+}
+
+
+Tabs.Main:AddButton({
+    Title = "Remove Notifications",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local playerGui = player:FindFirstChild("PlayerGui")
+        if playerGui then
+            local inset = playerGui:FindFirstChild("Inset")
+            if inset then
+                local notifications = inset:FindFirstChild("Notifications")
+                if notifications then
+                    notifications:Destroy()
+                end
+            end
+        end
+    end
+})
+
+            local Keybind = Tabs.Main:AddKeybind("Keybind", {
+                Title = "KeyBind",
+                Mode = "Toggle", -- Always, Toggle, Hold
+                Default = "K", -- String as the name of the keybind (MB1, MB2 for mouse buttons)
+        
+                -- Occurs when the keybind is clicked, Value is `true`/`false`
+                Callback = function(Value)
+                    print("Keybind clicked!", Value)
+                end,
+        
+                -- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
+                ChangedCallback = function(New)
+                    print("Keybind changed!", New)
+                end
+            })
+        
+            -- OnClick is only fired when you press the keybind and the mode is Toggle
+            -- Otherwise, you will have to use Keybind:GetState()
+            Keybind:OnClick(function()
+                print("Keybind clicked:", Keybind:GetState())
+            end)
+        
+            Keybind:OnChanged(function()
+                print("Keybind changed:", Keybind.Value)
+            end)
+        
+            task.spawn(function()
+                while true do
+                    wait(1)
+        
+                    -- example for checking if a keybind is being pressed
+                    local state = Keybind:GetState()
+                    if state then
+                        print("Keybind is being held down")
+                    end
+        
+                    if Fluent.Unloaded then break end
+                end
+            end)
+        
+            Keybind:SetValue("K", "Toggle") -- Sets keybind to MB2, mode to Hold
+
+
+    local Input = Tabs.Main:AddInput("Input", {
+        Title = "Input",
+        Default = "Default",
+        Placeholder = "Placeholder",
+        Numeric = false, -- Only allows numbers
+        Finished = false, -- Only calls callback when you press enter
+        Callback = function(Value)
+            print("Input changed:", Value)
+        end
+    })
+
+    Input:OnChanged(function()
+        print("Input updated:", Input.Value)
+    end)
+end
+
+
+-- Addons:
+-- SaveManager (Allows you to have a configuration system)
+-- InterfaceManager (Allows you to have a interface managment system)
+
+-- Hand the library over to our managers
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+
+-- Ignore keys that are used by ThemeManager.
+-- (we dont want configs to save themes, do we?)
+SaveManager:IgnoreThemeSettings()
+
+-- You can add indexes of elements the save manager should ignore
+SaveManager:SetIgnoreIndexes({})
+
+-- use case for doing it this way:
+-- a script hub could have themes in a global folder
+-- and game configs in a separate folder per game
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+
+Window:SelectTab(1)
+
+Fluent:Notify({
+    Title = "Made By : Nameless Scripts",
+    Content = "Dungeon Quest Script Loaded",
+    Duration = 5
+})
+
+-- You can use the SaveManager:LoadAutoloadConfig() to load a config
+-- which has been marked to be one that auto loads!
+SaveManager:LoadAutoloadConfig()
